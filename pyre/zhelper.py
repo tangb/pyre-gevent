@@ -4,7 +4,7 @@ import os
 import random
 import sys
 import threading
-import zmq
+import zmq.green as zmq
 from . import zsocket
 
 try:

@@ -1,5 +1,5 @@
 import time
-import zmq
+import zmq.green as zmq
 import logging
 
 logger = logging.getLogger(__name__)

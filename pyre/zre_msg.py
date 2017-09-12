@@ -29,7 +29,7 @@
 
 import struct
 import uuid
-import zmq
+import zmq.green as zmq
 import logging
 
 STRING_MAX = 255

@@ -23,7 +23,7 @@
 # method that would take a zsock_t argument, including methods in zframe,
 # zmsg, zstr, zpoller, and zloop.
 
-import zmq
+import zmq.green as zmq
 import threading
 import logging
 from . import zsocket

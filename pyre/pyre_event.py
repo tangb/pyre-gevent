@@ -1,4 +1,5 @@
-import zmq, uuid, json
+import zmq.green as zmq
+import uuid, json
 
 class PyreEvent(object):
     """Parsing Pyre messages

@@ -25,7 +25,7 @@
 import logging
 import ipaddress
 import socket
-import zmq
+import zmq.green as zmq
 import struct
 import time
 from sys import platform

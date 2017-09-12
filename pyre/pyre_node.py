@@ -1,4 +1,4 @@
-import zmq
+import zmq.green as zmq
 import uuid
 import logging
 import struct

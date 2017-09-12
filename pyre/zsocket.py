@@ -13,7 +13,7 @@
 # wrap the 0MQ socket type, to avoid breaking all libzmq socket-related
 # calls.
 
-import zmq
+import zmq.green as zmq
 import struct
 
 class ZSocket(zmq.Socket):
