@@ -1,7 +1,9 @@
-Pyre
-====
+Pyre (Green version)
+====================
 
 This is a Python port of [Zyre](zyre.org) 1.0, implementing the same [ZRE protocol](http://rfc.zeromq.org/spec:36).
+
+This version is using [green version](https://github.com/zeromq/pyzmq/tree/master/zmq/green) of PyZMQ
 
 # Pyre - an open-source framework for proximity-based peer-to-peer applications
 
