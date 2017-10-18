@@ -32,6 +32,7 @@ from sys import platform
 from .zactor import ZActor
 from . import zhelper
 from .zhelper import u
+import netifaces
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class ZBeacon(object):
         self.hostname = ""            #  Saved host name
 
         self.address = None
+        self.mac = None
         self.network_address = None
         self.broadcast_address = None
         self.interface_name = None
@@ -141,15 +143,19 @@ class ZBeacon(object):
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
                 logger.debug("Checking out interface {0}.".format(name))
-                # For some reason the data we need lives in the "2" section of the interface.
-                data_2 = data.get(2)
+                data_2 = data.get(netifaces.AF_INET)
+                data_17 = data.get(netifaces.AF_LINK)
 
                 if not data_2:
                     logger.debug("No data_2 found for interface {0}.".format(name))
                     continue
+                if not data_17:
+                    logger.debug("No data_17 found for interface {0}.".format(name))
+                    continue
 
                 address_str = data_2.get("addr")
                 netmask_str = data_2.get("netmask")
+                mac_str = data_17.get("addr")
 
                 if not address_str or not netmask_str:
                     logger.debug("Address or netmask not found for interface {0}.".format(name))
@@ -160,6 +166,9 @@ class ZBeacon(object):
 
                 if isinstance(netmask_str, bytes):
                     netmask_str = netmask_str.decode("utf8")
+
+                if isinstance(mac_str, bytes):
+                    mac_str = mac_str.decode("utf8")
 
                 interface_string = "{0}/{1}".format(address_str, netmask_str)
 
@@ -174,6 +183,7 @@ class ZBeacon(object):
                     continue
 
                 self.address = interface.ip
+                self.mac = mac_str
                 self.network_address = interface.network.network_address
                 self.broadcast_address = interface.network.broadcast_address
                 self.interface_name = name
@@ -188,8 +198,10 @@ class ZBeacon(object):
             self.broadcast_address = ipaddress.IPv4Address(u(MULTICAST_GRP))
             self.interface_name = 'loopback'
             self.address = u('127.0.0.1')
+            self.mac = None
 
         logger.debug("Address: {0}".format(self.address))
+        logger.debug("MAC: {0}".format(self.mac))
         logger.debug("Network: {0}".format(self.network_address))
         logger.debug("Broadcast: {0}".format(self.broadcast_address))
         logger.debug("Interface name: {0}".format(self.interface_name))
