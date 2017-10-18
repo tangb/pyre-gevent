@@ -63,7 +63,7 @@ class ZBeacon(object):
         self.mac = None
         self.network_address = None
         self.broadcast_address = None
-        self.interface_name = None
+        self.interface_name = kwargs.get('interface',None)
         self.run()
 
     def __del__(self):
@@ -143,6 +143,10 @@ class ZBeacon(object):
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
+                if self.interface_name and name!=self.interface_name:
+                    logger.debug("Skipping interface: %s" % name)
+                    continue
+
                 logger.debug("Checking out interface {0}.".format(name))
                 data_2 = data.get(netifaces.AF_INET)
                 data_17 = data.get(netifaces.AF_LINK)

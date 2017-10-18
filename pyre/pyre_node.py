@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 class PyreNode(object):
 
-    def __init__(self, ctx, pipe, outbox, *args, **kwargs):
+    def __init__(self, ctx, pipe, outbox, interface=None, *args, **kwargs):
         self._ctx = ctx                             #... until we use zbeacon actor
         self._pipe = pipe                           # We send command replies and signals to the pipe
                                                     # Pipe back to application
@@ -35,6 +35,7 @@ class PyreNode(object):
         self.identity = uuid.uuid4()                # Our UUID as object
         self.bound = False
         self.inbox = ctx.socket(zmq.ROUTER)         # Our inbox socket (ROUTER)
+        self.interface = interface
         try:
             self.inbox.setsockopt(zmq.ROUTER_HANDOVER, 1)
         except AttributeError as e:
@@ -62,7 +63,7 @@ class PyreNode(object):
         # gossip our endpoint to others.
         if self.beacon_port:
             # Start beacon discovery
-            self.beacon = ZActor(self._ctx, ZBeacon)
+            self.beacon = ZActor(self._ctx, ZBeacon, interface=self.interface)
 
             if self._verbose:
                 self.beacon.send_unicode("VERBOSE")
