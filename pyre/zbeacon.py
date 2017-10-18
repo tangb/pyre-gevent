@@ -33,6 +33,7 @@ from .zactor import ZActor
 from . import zhelper
 from .zhelper import u
 import netifaces
+import netaddr
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +170,12 @@ class ZBeacon(object):
 
                 if isinstance(mac_str, bytes):
                     mac_str = mac_str.decode("utf8")
+
+                #keep only private interface
+                ip_address = netaddr.IPAddress(address_str)
+                if ip_address and not ip_address.is_private():
+                    logger.debug("Interface {0} refers to public ip address, drop it.".format(name))
+                    continue
 
                 interface_string = "{0}/{1}".format(address_str, netmask_str)
 

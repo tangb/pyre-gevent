@@ -35,6 +35,6 @@ setup(
         url='http://www.github.com/tangb/pyre-gevent/',
         packages=['pyre-gevent'],
         include_package_data=True,
-        requires=['pyzmq', 'ipaddress'],
-        install_requires=['pyzmq', 'ipaddress'],
+        requires=['pyzmq', 'ipaddress', 'netaddr'],
+        install_requires=['pyzmq', 'ipaddress', 'netaddr'],
 )
