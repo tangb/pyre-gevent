@@ -143,10 +143,6 @@ class ZBeacon(object):
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
-                if self.interface_name and name!=self.interface_name:
-                    logger.debug("Skipping interface: %s" % name)
-                    continue
-
                 logger.debug("Checking out interface {0}.".format(name))
                 data_2 = data.get(netifaces.AF_INET)
                 data_17 = data.get(netifaces.AF_LINK)
@@ -287,8 +283,10 @@ class ZBeacon(object):
             self.udpsock.sendto(self.transmit, (str(self.broadcast_address),
                                                 self.port_nbr))
         except (OSError, socket.error):
-            logger.debug("Network seems gone, exiting zbeacon")
-            self.terminated = True
+            logger.debug("Network seems gone, restarting zbeacon udp connection")
+            #restart socket
+            time.sleep(1.0)
+            self.prepare_udp()
 
     def run(self):
         # Signal actor successfully initialized
