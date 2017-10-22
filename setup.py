@@ -29,7 +29,7 @@ def find_version(*file_paths):
 setup(
         name='pyre-gevent',
         version=find_version('pyre_gevent', '__init__.py'),
-        description='Python ZRE implementation',
+        description='Python ZRE implementation (green version)',
         author='Arnaud Loonstra',
         author_email='arnaud@sphaero.org',
         maintainer='Tanguy Bonneau',
