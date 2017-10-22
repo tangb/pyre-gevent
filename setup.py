@@ -32,6 +32,8 @@ setup(
         description='Python ZRE implementation',
         author='Arnaud Loonstra',
         author_email='arnaud@sphaero.org',
+        maintainer='Tanguy Bonneau',
+        maintainer_email='tanguy.bonneau@gmail.com',
         url='http://www.github.com/tangb/pyre-gevent/',
         packages=['pyre-gevent'],
         include_package_data=True,
