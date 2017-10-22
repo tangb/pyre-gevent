@@ -28,14 +28,14 @@ def find_version(*file_paths):
 
 setup(
         name='pyre-gevent',
-        version=find_version('pyre', '__init__.py'),
+        version=find_version('pyre_gevent', '__init__.py'),
         description='Python ZRE implementation',
         author='Arnaud Loonstra',
         author_email='arnaud@sphaero.org',
         maintainer='Tanguy Bonneau',
         maintainer_email='tanguy.bonneau@gmail.com',
         url='http://www.github.com/tangb/pyre-gevent/',
-        packages=['pyre-gevent'],
+        packages=['pyre_gevent'],
         include_package_data=True,
         requires=['pyzmq', 'ipaddress', 'netaddr'],
         install_requires=['pyzmq', 'ipaddress', 'netaddr'],
