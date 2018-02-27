@@ -450,6 +450,11 @@ class PyreNode(object):
         try:
             ipaddress, frame = self.beacon_socket.recv_multipart()
         except ValueError:
+            logger.debug("ZBeacon terminated")
+            self.poller.unregister(self.beacon_socket)
+            self.beacon = None
+            self.beacon_socket = None
+            self.outbox.send_unicode("$TERM")
             return
 
         beacon = struct.unpack('cccb16sH', frame)
