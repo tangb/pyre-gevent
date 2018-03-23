@@ -139,10 +139,29 @@ class ZBeacon(object):
 
         logger.debug("Available interfaces: {0}".format(netinf))
 
+        #get default gateway interface
+        default_interface_name = None
+        gateways = netifaces.gateways()
+        if 'default' in gateways and netifaces.AF_INET in gateways['default']:
+            default_interface_name = netifaces.gateways()['default'][netifaces.AF_INET][1]
+            logger.debug('Default interface name {0}'.format(default_interface_name))
+
         for iface in netinf:
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
+
+                #interface forced by user, skip other ones
+                if self.interface_name and name!=self.interface_name:
+                    logger.debug("Skipping interface: %s" % name)
+                    continue
+
+                #Interface of default route found, skip other ones
+                #This trick allows to skip invalid interfaces like docker ones.
+                if default_interface_name is not None and default_interface_name!=name:
+                    logger.debug('Interface {0} is not interface of default route'.format(name))
+                    continue
+
                 logger.debug("Checking out interface {0}.".format(name))
                 data_2 = data.get(netifaces.AF_INET)
                 data_17 = data.get(netifaces.AF_LINK)
@@ -211,7 +230,7 @@ class ZBeacon(object):
         logger.debug("MAC: {0}".format(self.mac))
         logger.debug("Network: {0}".format(self.network_address))
         logger.debug("Broadcast: {0}".format(self.broadcast_address))
-        logger.debug("Interface name: {0}".format(self.interface_name))
+        logger.debug("Choosen interface name: {0}".format(self.interface_name))
 
     def configure(self, port_nbr):
         self.port_nbr = port_nbr
