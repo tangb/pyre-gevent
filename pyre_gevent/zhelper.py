@@ -515,6 +515,7 @@ def get_win_ifaddrs():
         data['netmask'] = "{0}".format(ip_if.netmask)
         data['broadcast'] = "{0}".format(ip_if.network.broadcast_address)
         data['network'] = "{0}".format(ip_if.network.network_address)
+        data['adapter'] = "{0}".format(i.adapter_name.decode('utf-8'))
 
         name = i.description 
         #result[i.description] = { ad.family : d}

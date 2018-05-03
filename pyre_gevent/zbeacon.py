@@ -136,15 +136,23 @@ class ZBeacon(object):
 
     def _prepare_socket(self):
         netinf = zhelper.get_ifaddrs()
-
         logger.debug("Available interfaces: {0}".format(netinf))
 
         #get default gateway interface
         default_interface_name = None
+        netifaces_default_interface_name = None
         gateways = netifaces.gateways()
+        logger.debug("Gateways: {0}".format(gateways))
         if 'default' in gateways and netifaces.AF_INET in gateways['default']:
-            default_interface_name = netifaces.gateways()['default'][netifaces.AF_INET][1]
-            logger.debug('Default interface name {0}'.format(default_interface_name))
+            default_interface_name = gateways['default'][netifaces.AF_INET][1]
+            #fix for windows (netifaces.gateway() returns adapter name instead of interface name)
+            if platform.startswith("win"):
+                netifaces_default_interface_name = default_interface_name
+                for iface in netinf:
+                    for name, data in iface.items():
+                        if netifaces.AF_INET in data and data[netifaces.AF_INET]['adapter']==default_interface_name:
+                            default_interface_name = name
+            logger.debug('Default interface name "{0}"'.format(default_interface_name))
 
         for iface in netinf:
             # Loop over the interfaces and their settings to try to find the broadcast address.
@@ -159,26 +167,34 @@ class ZBeacon(object):
                 #Interface of default route found, skip other ones
                 #This trick allows to skip invalid interfaces like docker ones.
                 if default_interface_name is not None and default_interface_name!=name:
-                    logger.debug('Interface {0} is not interface of default route'.format(name))
+                    logger.debug('Interface "{0}" is not interface of default route'.format(name))
                     continue
 
-                logger.debug("Checking out interface {0}.".format(name))
+                logger.debug('Checking out interface "{0}".'.format(name))
+
+                #Get addr and netmask infos
                 data_2 = data.get(netifaces.AF_INET)
-                data_17 = data.get(netifaces.AF_LINK)
-
                 if not data_2:
-                    logger.debug("No data_2 found for interface {0}.".format(name))
+                    logger.debug('No data_2 found for interface "{0}".'.format(name))
                     continue
+
+                #get mac address infos
+                data_17 = data.get(netifaces.AF_LINK)
+                if not data_17 and platform.startswith("win"):
+                    #last chance to get mac address on windows platform
+                    ifaddresses = netifaces.ifaddresses(netifaces_default_interface_name)
+                    if netifaces.AF_LINK in ifaddresses and len(ifaddresses[netifaces.AF_LINK])>0:
+                        data_17 = ifaddresses[netifaces.AF_LINK][0]
                 if not data_17:
-                    logger.debug("No data_17 found for interface {0}.".format(name))
+                    logger.debug('No data_17 found for interface "{0}".'.format(name))
                     continue
 
                 address_str = data_2.get("addr")
                 netmask_str = data_2.get("netmask")
-                mac_str = data_17.get("addr")
+                mac_str = data_17.get("addr")                
 
                 if not address_str or not netmask_str:
-                    logger.debug("Address or netmask not found for interface {0}.".format(name))
+                    logger.debug('Address or netmask not found for interface "{0}".'.format(name))
                     continue
 
                 if isinstance(address_str, bytes):
@@ -193,7 +209,7 @@ class ZBeacon(object):
                 #keep only private interface
                 ip_address = netaddr.IPAddress(address_str)
                 if ip_address and not ip_address.is_private():
-                    logger.debug("Interface {0} refers to public ip address, drop it.".format(name))
+                    logger.debug('Interface "{0}" refers to public ip address, drop it.'.format(name))
                     continue
 
                 interface_string = "{0}/{1}".format(address_str, netmask_str)
@@ -201,11 +217,11 @@ class ZBeacon(object):
                 interface = ipaddress.ip_interface(u(interface_string))
 
                 if interface.is_loopback:
-                    logger.debug("Interface {0} is a loopback device.".format(name))
+                    logger.debug('Interface "{0}" is a loopback device.'.format(name))
                     continue
 
                 if interface.is_link_local:
-                    logger.debug("Interface {0} is a link-local device.".format(name))
+                    logger.debug('Interface "{0}" is a link-local device.'.format(name))
                     continue
 
                 self.address = interface.ip
