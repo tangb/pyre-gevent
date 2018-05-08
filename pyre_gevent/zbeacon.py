@@ -139,20 +139,24 @@ class ZBeacon(object):
         logger.debug("Available interfaces: {0}".format(netinf))
 
         #get default gateway interface
-        default_interface_name = None
-        netifaces_default_interface_name = None
+        default_interface_names = []
+        netifaces_default_interface_names = []
         gateways = netifaces.gateways()
         logger.debug("Gateways: {0}".format(gateways))
-        if 'default' in gateways and netifaces.AF_INET in gateways['default']:
-            default_interface_name = gateways['default'][netifaces.AF_INET][1]
-            #fix for windows (netifaces.gateway() returns adapter name instead of interface name)
-            if platform.startswith("win"):
-                netifaces_default_interface_name = default_interface_name
-                for iface in netinf:
-                    for name, data in iface.items():
-                        if netifaces.AF_INET in data and data[netifaces.AF_INET]['adapter']==default_interface_name:
-                            default_interface_name = name
-            logger.debug('Default interface name "{0}"'.format(default_interface_name))
+        if netifaces.AF_INET in gateways:
+            for address, interface, is_default in gateways[netifaces.AF_INET]:
+                #fix for windows (netifaces.gateway() returns adapter name instead of interface name)
+                if platform.startswith("win"):
+                    netifaces_default_interface_names.append(interface)
+                    for iface in netinf:
+                        for name, data in iface.items():
+                            if netifaces.AF_INET in data and data[netifaces.AF_INET]['adapter']==interface:
+                                default_interface_names.append(name)
+                else:
+                    default_interface_names.append(interface)
+                    
+            logger.debug('Default interface names "{0}"'.format(list(default_interface_names)))
+            logger.debug('Netifaces default interface names "{0}"'.format(list(netifaces_default_interface_names)))
 
         for iface in netinf:
             # Loop over the interfaces and their settings to try to find the broadcast address.
@@ -166,7 +170,7 @@ class ZBeacon(object):
 
                 #Interface of default route found, skip other ones
                 #This trick allows to skip invalid interfaces like docker ones.
-                if default_interface_name is not None and default_interface_name!=name:
+                if len(default_interface_names)>0 and name not in default_interface_names:
                     logger.debug('Interface "{0}" is not interface of default route'.format(name))
                     continue
 
@@ -182,9 +186,11 @@ class ZBeacon(object):
                 data_17 = data.get(netifaces.AF_LINK)
                 if not data_17 and platform.startswith("win"):
                     #last chance to get mac address on windows platform
-                    ifaddresses = netifaces.ifaddresses(netifaces_default_interface_name)
-                    if netifaces.AF_LINK in ifaddresses and len(ifaddresses[netifaces.AF_LINK])>0:
-                        data_17 = ifaddresses[netifaces.AF_LINK][0]
+                    for netifaces_default_interface_name in netifaces_default_interface_names:
+                        ifaddresses = netifaces.ifaddresses(netifaces_default_interface_name)
+                        if netifaces.AF_LINK in ifaddresses and len(ifaddresses[netifaces.AF_LINK])>0:
+                            data_17 = ifaddresses[netifaces.AF_LINK][0]
+                            break
                 if not data_17:
                     logger.debug('No data_17 found for interface "{0}".'.format(name))
                     continue
