@@ -63,15 +63,15 @@ class ZBeacon(object):
         self.mac = None
         self.network_address = None
         self.broadcast_address = None
-        self.interface_name = kwargs.get('interface',None)
+        self.interface_name = None
         self.run()
 
     def __del__(self):
         if self.udpsock:
             self.udpsock.close()
 
-    def prepare_udp(self):
-        self._prepare_socket()
+    def prepare_udp(self, interface_name=None):
+        self._prepare_socket(interface_name)
         try:
             self.udpsock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             self.udpsock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -134,7 +134,7 @@ class ZBeacon(object):
         except socket.error:
             logger.exception("Initializing of {0} raised an exception".format(self.__class__.__name__))
 
-    def _prepare_socket(self):
+    def _prepare_socket(self, interface_name=None):
         netinf = zhelper.get_ifaddrs()
         logger.debug("Available interfaces: {0}".format(netinf))
 
@@ -162,10 +162,8 @@ class ZBeacon(object):
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
-
-                #interface forced by user, skip other ones
-                if self.interface_name and name!=self.interface_name:
-                    logger.debug("Skipping interface: %s" % name)
+                # Drop if not specified interface name
+                if interface_name and interface_name != name:
                     continue
 
                 #Interface of default route found, skip other ones
@@ -236,6 +234,9 @@ class ZBeacon(object):
                 self.broadcast_address = interface.network.broadcast_address
                 self.interface_name = name
 
+                if self.address:
+                    break
+            
             if self.address:
                 break
 
@@ -254,9 +255,9 @@ class ZBeacon(object):
         logger.debug("Broadcast: {0}".format(self.broadcast_address))
         logger.debug("Choosen interface name: {0}".format(self.interface_name))
 
-    def configure(self, port_nbr):
+    def configure(self, interface_name, port_nbr):
         self.port_nbr = port_nbr
-        self.prepare_udp()
+        self.prepare_udp(interface_name)
         self.pipe.send_unicode(str(self.address))
 
     def handle_pipe(self):
@@ -272,8 +273,14 @@ class ZBeacon(object):
         if command == "VERBOSE":
             self.verbose = True
         elif command == "CONFIGURE":
+            # unpacking code from https://bit.ly/2qN3ZUz
+            interface_data = request.pop(0)
+
+            (interface_name_len,), interface = struct.unpack('I', interface_data[:4]), interface_data[4:]
+            interface = interface.decode('UTF-8')
+
             port = struct.unpack('I', request.pop(0))[0]
-            self.configure(port)
+            self.configure(interface, port)
         elif command == "PUBLISH":
             self.transmit = request.pop(0)
             if self.interval == 0:

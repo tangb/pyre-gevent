@@ -20,13 +20,14 @@ logger = logging.getLogger(__name__)
 
 class PyreNode(object):
 
-    def __init__(self, ctx, pipe, outbox, interface=None, *args, **kwargs):
+    def __init__(self, ctx, pipe, outbox, *args, **kwargs):
         self._ctx = ctx                             #... until we use zbeacon actor
         self._pipe = pipe                           # We send command replies and signals to the pipe
                                                     # Pipe back to application
         self.outbox = outbox                        # Outbox back to application
         self._terminated = False                    # API shut us down
         self._verbose = False                       # Log all traffic (logging module?)
+        self.beacon_interface = ''                  # Beacon interface
         self.beacon_port = ZRE_DISCOVERY_PORT       # Beacon port number
         self.interval = 0                           # Beacon interval 0=default
         self.beacon = None                          # Beacon actor
@@ -35,7 +36,6 @@ class PyreNode(object):
         self.identity = uuid.uuid4()                # Our UUID as object
         self.bound = False
         self.inbox = ctx.socket(zmq.ROUTER)         # Our inbox socket (ROUTER)
-        self.interface = interface
         try:
             self.inbox.setsockopt(zmq.ROUTER_HANDOVER, 1)
         except AttributeError as e:
@@ -63,14 +63,19 @@ class PyreNode(object):
         # gossip our endpoint to others.
         if self.beacon_port:
             # Start beacon discovery
-            self.beacon = ZActor(self._ctx, ZBeacon, interface=self.interface)
+            self.beacon = ZActor(self._ctx, ZBeacon)
 
             if self._verbose:
                 self.beacon.send_unicode("VERBOSE")
 
-
             # Our hostname is provided by zbeacon
             self.beacon.send_unicode("CONFIGURE", zmq.SNDMORE)
+
+            # interface packing code from https://bit.ly/2qN3ZUz
+            interface_byte_str = bytes(self.beacon_interface, 'utf-8')
+            self.beacon.send(struct.pack("I", len(interface_byte_str)) + interface_byte_str,
+                             zmq.SNDMORE)
+
             self.beacon.send(struct.pack("I", self.beacon_port))
             hostname = self.beacon.recv_unicode()
 
@@ -156,6 +161,8 @@ class PyreNode(object):
             self.headers.update({header_name: header_value})
         elif command == "SET VERBOSE":
             self.verbose = True
+        elif command == "SET INTERFACE":
+            self.beacon_interface = request.pop(0).decode('UTF-8')
         elif command == "SET PORT":
             self.beacon_port = int(request.pop(0))
         elif command == "SET INTERVAL":
