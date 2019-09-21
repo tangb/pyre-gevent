@@ -1,7 +1,7 @@
 Pyre (Green version)
 ====================
 
-This is a Python port of [Zyre](zyre.org) 1.0, implementing the same [ZRE protocol](http://rfc.zeromq.org/spec:36).
+This is a Python port of [Zyre](http://zyre.org) 1.0, implementing the same [ZRE protocol](http://rfc.zeromq.org/spec:36).
 
 This version is using [green version](https://github.com/zeromq/pyzmq/tree/master/zmq/green) of PyZMQ which makes it compatible with gevent.
 
@@ -140,9 +140,7 @@ def chat_task(ctx, pipe):
             n.shouts("CHAT", message.decode('utf-8'))
         else:
         #if n.socket() in items and items[n.socket()] == zmq.POLLIN:
-            print("HMMM")
             cmds = n.recv()
-            print("HMMM",cmds)
             msg_type = cmds.pop(0)
             print("NODE_MSG TYPE: %s" % msg_type)
             print("NODE_MSG PEER: %s" % uuid.UUID(bytes=cmds.pop(0)))
