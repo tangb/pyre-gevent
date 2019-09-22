@@ -379,7 +379,11 @@ class PyreNode(object):
     # Here we handle messages coming from other peers
     def recv_peer(self):
         zmsg = ZreMsg()
-        zmsg.recv(self.inbox)
+        try:
+            zmsg.recv(self.inbox)
+        except:
+            # Handle invalid received data that could occurs if peer crashed before sending all data
+            return
         #msgs = self.inbox.recv_multipart()
         # Router socket tells us the identity of this peer
         # First frame is sender identity
