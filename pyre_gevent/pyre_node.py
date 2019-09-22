@@ -5,6 +5,7 @@ import struct
 import socket
 import time
 import sys
+import platform
 from .zactor import ZActor
 from .zbeacon import ZBeacon
 from .zre_msg import ZreMsg
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 class PyreNode(object):
 
     def __init__(self, ctx, pipe, outbox, *args, **kwargs):
+        self.__py2 = platform.python_version() < '3.0'
         self._ctx = ctx                             #... until we use zbeacon actor
         self._pipe = pipe                           # We send command replies and signals to the pipe
                                                     # Pipe back to application
@@ -72,7 +74,10 @@ class PyreNode(object):
             self.beacon.send_unicode("CONFIGURE", zmq.SNDMORE)
 
             # interface packing code from https://bit.ly/2qN3ZUz
-            interface_byte_str = bytes(self.beacon_interface, 'utf-8')
+            if self.__py2:
+                interface_byte_str = bytes(self.beacon_interface).encode('utf-8')
+            else:
+                interface_byte_str = bytes(self.beacon_interface, 'utf-8')
             self.beacon.send(struct.pack("I", len(interface_byte_str)) + interface_byte_str,
                              zmq.SNDMORE)
 
