@@ -40,6 +40,8 @@ logger = logging.getLogger(__name__)
 INTERVAL_DFLT = 1.0
 BEACON_MAX = 255      # Max size of beacon data
 MULTICAST_GRP = '225.25.25.25'
+ENETDOWN = 50   #socket error, network is down
+ENETUNREACH = 51 #socket error, network unreachable
 
 
 class ZBeacon(object):
@@ -330,11 +332,23 @@ class ZBeacon(object):
         try:
             self.udpsock.sendto(self.transmit, (str(self.broadcast_address),
                                                 self.port_nbr))
-        except (OSError, socket.error):
-            logger.debug("Network seems gone, restarting zbeacon udp connection")
-            #restart socket
-            time.sleep(1.0)
-            self.prepare_udp()
+            
+        except OSError as e:
+            
+            # network down, just wait, it could come back up again.
+            # socket call errors 50 and 51 relate to the network being
+            # down or unreachable, the recommended action to take is to 
+            # try again so we don't terminate in these cases.
+            if e.errno in [ENETDOWN, ENETUNREACH]: pass
+            
+            # all other cases, we'll terminate
+            else:
+                logger.debug("Network seems gone, exiting zbeacon")
+                self.terminated = True
+                
+        except socket.error:
+            logger.debug("Network seems gone, exiting zbeacon")
+            self.terminated = True
 
     def run(self):
         # Signal actor successfully initialized
