@@ -183,13 +183,13 @@ class ZBeacon(object):
                     continue
 
                 #get mac address infos
-                data_17 = data.get(netifaces.AF_LINK)
+                data_17 = data.get(netifaces.AF_PACKET)
                 if not data_17 and platform.startswith("win"):
                     #last chance to get mac address on windows platform
                     for netifaces_default_interface_name in netifaces_default_interface_names:
                         ifaddresses = netifaces.ifaddresses(netifaces_default_interface_name)
-                        if netifaces.AF_LINK in ifaddresses and len(ifaddresses[netifaces.AF_LINK])>0:
-                            data_17 = ifaddresses[netifaces.AF_LINK][0]
+                        if netifaces.AF_PACKET in ifaddresses and len(ifaddresses[netifaces.AF_PACKET])>0:
+                            data_17 = ifaddresses[netifaces.AF_PACKET][0]
                             break
                 if not data_17:
                     logger.debug('No data_17 found for interface "{0}".'.format(name))

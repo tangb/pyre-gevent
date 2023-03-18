@@ -38,5 +38,5 @@ setup(
         packages=['pyre_gevent'],
         include_package_data=True,
         requires=['pyzmq', 'ipaddress', 'netaddr', 'netifaces'],
-        install_requires=['pyzmq', 'ipaddress', 'netaddr', 'netifaces'],
+        install_requires=['pyzmq', 'ipaddress', 'netaddr', 'netifaces2'],
 )
