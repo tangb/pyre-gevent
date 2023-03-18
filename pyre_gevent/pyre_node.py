@@ -411,7 +411,7 @@ class PyreNode(object):
 
         # Ignore command if peer isn't ready
         if not peer or not peer.get_ready():
-            logger.warning("Peer {0} isn't ready".format(peer))
+            logger.debug("Peer {0} isn't ready".format(peer))
             return
 
         if peer.messages_lost(zmsg):
