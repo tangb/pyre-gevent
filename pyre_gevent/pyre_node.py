@@ -301,7 +301,7 @@ class PyreNode(object):
             logger.warning("Unkown Node API command: {0}".format(command))
 
     def purge_peer(self, peer, endpoint):
-        if (peer.get_endpoint() == endpoint):
+        if peer.get_endpoint() == endpoint:
             self.remove_peer(peer)
             peer.disconnect()
             logger.debug("Purge peer: {0}{1}".format(peer,endpoint))
@@ -531,8 +531,7 @@ class PyreNode(object):
         reap_at = time.time() + REAP_INTERVAL
         while not self._terminated:
             timeout = reap_at - time.time()
-            if timeout < 0:
-                timeout = 0
+            timeout = max(timeout, 0)
             items = dict(self.poller.poll(timeout * 1000))
 
             if self._pipe in items and items[self._pipe] == zmq.POLLIN:

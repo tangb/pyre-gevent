@@ -414,9 +414,7 @@ class ZreMsg(object):
         group_len = self._get_number4()
         #print("needle is at: %i"% self._needle )
         #print("grouplen: ", group_len)
-        self.groups = []
-        for x in range(group_len):
-            self.groups.append(self._get_long_string())
+        self.groups = [self._get_long_string() for _ in range(group_len)]
         #print(self.groups)
         #print("post_group: needle is at: %i"% self._needle )
         self.status = self._get_number1()

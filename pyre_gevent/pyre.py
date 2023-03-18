@@ -39,7 +39,7 @@ class Pyre(object):
         """
         super(Pyre, self).__init__(*args, **kwargs)
         ctx = kwargs.get('ctx')
-        if ctx == None:
+        if ctx is None:
             ctx = zmq.Context()
         self._ctx = ctx
         self._uuid = None

@@ -140,25 +140,25 @@ class ZBeacon(object):
         netinf = zhelper.get_ifaddrs()
         logger.debug("Available interfaces: {0}".format(netinf))
 
-        #get default gateway interface
+        # get default gateway interface
         default_interface_names = []
         netifaces_default_interface_names = []
         gateways = netifaces.gateways()
         logger.debug("Gateways: {0}".format(gateways))
         if netifaces.AF_INET in gateways:
             for address, interface, is_default in gateways[netifaces.AF_INET]:
-                #fix for windows (netifaces.gateway() returns adapter name instead of interface name)
+                # fix for windows (netifaces.gateway() returns adapter name instead of interface name)
                 if platform.startswith("win"):
                     netifaces_default_interface_names.append(interface)
                     for iface in netinf:
                         for name, data in iface.items():
-                            if netifaces.AF_INET in data and data[netifaces.AF_INET]['adapter']==interface:
+                            if netifaces.AF_INET in data and data[netifaces.AF_INET]["adapter"]==interface:
                                 default_interface_names.append(name)
                 else:
                     default_interface_names.append(interface)
                     
-            logger.debug('Default interface names "{0}"'.format(list(default_interface_names)))
-            logger.debug('Netifaces default interface names "{0}"'.format(list(netifaces_default_interface_names)))
+            logger.debug("Default interface names '{0}'".format(list(default_interface_names)))
+            logger.debug("Netifaces default interface names '{0}'".format(list(netifaces_default_interface_names)))
 
         for iface in netinf:
             # Loop over the interfaces and their settings to try to find the broadcast address.
@@ -168,31 +168,31 @@ class ZBeacon(object):
                 if interface_name and interface_name != name:
                     continue
 
-                #Interface of default route found, skip other ones
-                #This trick allows to skip invalid interfaces like docker ones.
-                if len(default_interface_names)>0 and name not in default_interface_names:
-                    logger.debug('Interface "{0}" is not interface of default route'.format(name))
+                # Interface of default route found, skip other ones
+                # This trick allows to skip invalid interfaces like docker ones.
+                if len(default_interface_names) > 0 and name not in default_interface_names:
+                    logger.debug("Interface '{0}' is not interface of default route".format(name))
                     continue
 
-                logger.debug('Checking out interface "{0}".'.format(name))
+                logger.debug("Checking out interface '{0}'.".format(name))
 
-                #Get addr and netmask infos
+                # Get addr and netmask infos
                 data_2 = data.get(netifaces.AF_INET)
                 if not data_2:
-                    logger.debug('No data_2 found for interface "{0}".'.format(name))
+                    logger.debug("No data_2 found for interface '{0}'.".format(name))
                     continue
 
-                #get mac address infos
+                # get mac address infos
                 data_17 = data.get(netifaces.AF_PACKET)
                 if not data_17 and platform.startswith("win"):
-                    #last chance to get mac address on windows platform
+                    # last chance to get mac address on windows platform
                     for netifaces_default_interface_name in netifaces_default_interface_names:
                         ifaddresses = netifaces.ifaddresses(netifaces_default_interface_name)
                         if netifaces.AF_PACKET in ifaddresses and len(ifaddresses[netifaces.AF_PACKET])>0:
                             data_17 = ifaddresses[netifaces.AF_PACKET][0]
                             break
                 if not data_17:
-                    logger.debug('No data_17 found for interface "{0}".'.format(name))
+                    logger.debug("No data_17 found for interface '{0}'.".format(name))
                     continue
 
                 address_str = data_2.get("addr")
@@ -200,7 +200,7 @@ class ZBeacon(object):
                 mac_str = data_17.get("addr")                
 
                 if not address_str or not netmask_str:
-                    logger.debug('Address or netmask not found for interface "{0}".'.format(name))
+                    logger.debug("Address or netmask not found for interface '{0}'.".format(name))
                     continue
 
                 if isinstance(address_str, bytes):
@@ -212,10 +212,10 @@ class ZBeacon(object):
                 if isinstance(mac_str, bytes):
                     mac_str = mac_str.decode("utf8")
 
-                #keep only private interface
+                # keep only private interface
                 ip_address = netaddr.IPAddress(address_str)
                 if ip_address and not ip_address.is_private():
-                    logger.debug('Interface "{0}" refers to public ip address, drop it.'.format(name))
+                    logger.debug("Interface '{0}' refers to public ip address, drop it.".format(name))
                     continue
 
                 interface_string = "{0}/{1}".format(address_str, netmask_str)
@@ -223,11 +223,11 @@ class ZBeacon(object):
                 interface = ipaddress.ip_interface(u(interface_string))
 
                 if interface.is_loopback:
-                    logger.debug('Interface "{0}" is a loopback device.'.format(name))
+                    logger.debug("Interface {0} is a loopback device.".format(name))
                     continue
 
                 if interface.is_link_local:
-                    logger.debug('Interface "{0}" is a link-local device.'.format(name))
+                    logger.debug("Interface {0} is a link-local device.".format(name))
                     continue
 
                 self.address = interface.ip
