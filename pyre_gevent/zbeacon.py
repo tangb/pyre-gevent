@@ -256,7 +256,7 @@ class ZBeacon(object):
                         ip_address.is_ipv4_private_use()
                         or ip_address.is_ipv6_unique_local()
                     )
-                if ip_address and not ip_is_private():
+                if ip_address and not ip_is_private:
                     logger.debug(
                         "Interface '{0}' refers to public ip address, drop it.".format(
                             name
