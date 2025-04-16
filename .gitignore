@@ -52,3 +52,8 @@ _templates
 # VSCode
 .vscode
 
+# env
+.venv
+venv
+.env
+env

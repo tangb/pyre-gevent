@@ -2,7 +2,9 @@ import os
 import time
 import logging
 import subprocess
-import pyre
+import sys
+sys.path.append('../')
+import pyre_gevent
 
 
 # The test needs the device name of the active network interface.
@@ -48,7 +50,7 @@ def test_network_disconnect(group="best-group"):
     device = _network_device()
 
     if device is None:
-        logger.warn("Skipping test. Please specify an active network interface to use for testing.")
+        logger.warning("Skipping test. Please specify an active network interface to use for testing.")
         return
 
     _network_device_enable(device, enable=True)

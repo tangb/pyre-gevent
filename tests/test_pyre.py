@@ -1,5 +1,7 @@
 import unittest
-import pyre
+import sys
+sys.path.append('../')
+import pyre_gevent as pyre
 import zmq
 import time
 import logging

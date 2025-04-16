@@ -1,13 +1,14 @@
 import unittest
-#import pyre
 import zmq
 import time
 import struct
 import uuid
 import logging
 import socket
-from pyre.zactor import ZActor
-from pyre.zbeacon import ZBeacon
+import sys
+sys.path.append('../')
+from pyre_gevent.zactor import ZActor
+from pyre_gevent.zbeacon import ZBeacon
 
 class ZBeaconTest(unittest.TestCase):
     

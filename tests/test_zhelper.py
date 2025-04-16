@@ -1,6 +1,8 @@
 import unittest
-from pyre import zhelper
-from pyre import zbeacon
+import sys
+sys.path.append('../')
+from pyre_gevent import zhelper
+from pyre_gevent import zbeacon
 import zmq
 import time
 
