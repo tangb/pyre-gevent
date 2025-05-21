@@ -147,7 +147,7 @@ class ZBeacon(object):
                 )
             )
 
-    def __fill_gateways(netinf):
+    def __fill_gateways(self, netinf):
         default_interface_names = []
         netifaces_default_interface_names = []
         gateways = netifaces.gateways()
