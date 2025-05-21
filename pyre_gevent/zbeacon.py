@@ -31,7 +31,7 @@ from sys import platform
 from .zactor import ZActor
 from . import zhelper
 from .zhelper import u
-import netifaces
+import netifaces # netiface-plus package
 import netaddr
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,8 @@ MULTICAST_GRP = "225.25.25.25"
 ENETDOWN = 50  # socket error, network is down
 ENETUNREACH = 51  # socket error, network unreachable
 
+AF_INET = 2
+AF_PACKET = 17
 
 class ZBeacon(object):
 
@@ -145,26 +147,20 @@ class ZBeacon(object):
                 )
             )
 
-    def _prepare_socket(self, interface_name=None):
-        netinf = zhelper.get_ifaddrs()
-        logger.debug("Available interfaces: {0}".format(netinf))
-
-        # get default gateway interface
+    def __fill_gateways(netinf):
         default_interface_names = []
         netifaces_default_interface_names = []
         gateways = netifaces.gateways()
         logger.debug("Gateways: {0}".format(gateways))
-        if netifaces.AF_INET in gateways:
-            for address, interface, is_default in gateways[netifaces.AF_INET]:
+
+        if AF_INET in gateways:
+            for address, interface, is_default in gateways[AF_INET]:
                 # fix for windows (netifaces.gateway() returns adapter name instead of interface name)
                 if platform.startswith("win"):
                     netifaces_default_interface_names.append(interface)
                     for iface in netinf:
                         for name, data in iface.items():
-                            if (
-                                netifaces.AF_INET in data
-                                and data[netifaces.AF_INET]["adapter"] == interface
-                            ):
+                            if AF_INET in data and data[AF_INET]["adapter"] == interface:
                                 default_interface_names.append(name)
                 else:
                     default_interface_names.append(interface)
@@ -177,12 +173,21 @@ class ZBeacon(object):
                     list(netifaces_default_interface_names)
                 )
             )
+    
+        return default_interface_names, netifaces_default_interface_names
+
+    def _prepare_socket(self, interface_name=None):
+        netinf = zhelper.get_ifaddrs()
+        logger.debug("Available interfaces: {0}".format(netinf))
+
+        # get gateways names (used to select the connected interface)
+        (default_interface_names, netifaces_default_interface_names) = self.__fill_gateways(netinf)
 
         for iface in netinf:
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
-                # Drop if not specified interface name
+                # Drop if not configured interface name
                 if interface_name and interface_name != name:
                     continue
 
@@ -200,13 +205,13 @@ class ZBeacon(object):
                 logger.debug("Checking out interface '{0}'.".format(name))
 
                 # Get addr and netmask infos
-                data_2 = data.get(netifaces.AF_INET)
+                data_2 = data.get(AF_INET)
                 if not data_2:
                     logger.debug("No data_2 found for interface '{0}'.".format(name))
                     continue
 
                 # get mac address infos
-                data_17 = data.get(netifaces.AF_PACKET)
+                data_17 = data.get(AF_PACKET)
                 if not data_17 and platform.startswith("win"):
                     # last chance to get mac address on windows platform
                     for (
@@ -215,11 +220,8 @@ class ZBeacon(object):
                         ifaddresses = netifaces.ifaddresses(
                             netifaces_default_interface_name
                         )
-                        if (
-                            netifaces.AF_PACKET in ifaddresses
-                            and len(ifaddresses[netifaces.AF_PACKET]) > 0
-                        ):
-                            data_17 = ifaddresses[netifaces.AF_PACKET][0]
+                        if AF_PACKET in ifaddresses and len(ifaddresses[AF_PACKET]) > 0:
+                            data_17 = ifaddresses[AF_PACKET][0]
                             break
                 if not data_17:
                     logger.debug("No data_17 found for interface '{0}'.".format(name))
