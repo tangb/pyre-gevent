@@ -33,6 +33,7 @@ from . import zhelper
 from .zhelper import u
 import netifaces # netiface-plus package
 import netaddr
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -176,6 +177,31 @@ class ZBeacon(object):
     
         return default_interface_names, netifaces_default_interface_names
 
+    def __search_mac_addr(self, adapter):
+        """
+        Search for MAC addr for specified adapter
+        Used on windows environnment while data returned by netifaces lib differs from nix envs
+
+        Args:
+            adapter (str): adapter name
+
+        Returns:
+            str: Found MAC addr or None if nothing found
+        """
+        try:
+            ifaddresses = netifaces.ifaddresses(adapter)
+            logger.debug("Ifaddresses result for adapter '%s': %s", adapter, ifaddresses)
+            for ifaddress in ifaddresses.values():
+                for ifaddress_entry in ifaddress:
+                    addr = ifaddress_entry.get("addr")
+                    if not addr:
+                        continue
+                    if re.search("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$", addr):
+                        return addr
+        except ValueError:
+            logger.debug("Error getting data for adapter '%s'", adapter)
+        return None
+
     def _prepare_socket(self, interface_name=None):
         netinf = zhelper.get_ifaddrs()
         logger.debug("Available interfaces: {0}".format(netinf))
@@ -187,8 +213,14 @@ class ZBeacon(object):
             # Loop over the interfaces and their settings to try to find the broadcast address.
             # ipv4 only currently and needs a valid broadcast address
             for name, data in iface.items():
+                logger.debug("------------------")
+                logger.debug("Checking interface '{0}'".format(name))
+                logger.debug("Data: %s", data)
                 # Drop if not configured interface name
                 if interface_name and interface_name != name:
+                    logger.debug(
+                        " - Interface '{0}' is not specified one '{1}'".format(name, interface_name)
+                    )
                     continue
 
                 # Interface of default route found, skip other ones
@@ -198,7 +230,7 @@ class ZBeacon(object):
                     and name not in default_interface_names
                 ):
                     logger.debug(
-                        "Interface '{0}' is not interface of default route".format(name)
+                        " - Interface '{0}' is not interface of default route".format(name)
                     )
                     continue
 
@@ -207,24 +239,23 @@ class ZBeacon(object):
                 # Get addr and netmask infos
                 data_2 = data.get(AF_INET)
                 if not data_2:
-                    logger.debug("No data_2 found for interface '{0}'.".format(name))
+                    logger.debug(" - No data_2 found for interface '{0}'.".format(name))
                     continue
+                else:
+                    logger.debug(" + data_2: %s | %s | %s", data_2, data_2.get(AF_INET), data_2.keys())
 
                 # get mac address infos
                 data_17 = data.get(AF_PACKET)
-                if not data_17 and platform.startswith("win"):
+                if not data_17 and platform.startswith("win") and data_2.get("adapter"):
                     # last chance to get mac address on windows platform
-                    for (
-                        netifaces_default_interface_name
-                    ) in netifaces_default_interface_names:
-                        ifaddresses = netifaces.ifaddresses(
-                            netifaces_default_interface_name
-                        )
-                        if AF_PACKET in ifaddresses and len(ifaddresses[AF_PACKET]) > 0:
-                            data_17 = ifaddresses[AF_PACKET][0]
-                            break
+                    adapter = data_2.get("adapter")
+                    mac_addr = self.__search_mac_addr(adapter)
+                    if mac_addr:
+                        data_17 = {
+                            "addr": mac_addr
+                        }
                 if not data_17:
-                    logger.debug("No data_17 found for interface '{0}'.".format(name))
+                    logger.debug(" - No data_17 found for interface '{0}'.".format(name))
                     continue
 
                 address_str = data_2.get("addr")
@@ -233,7 +264,7 @@ class ZBeacon(object):
 
                 if not address_str or not netmask_str:
                     logger.debug(
-                        "Address or netmask not found for interface '{0}'.".format(name)
+                        " - Address or netmask not found for interface '{0}'.".format(name)
                     )
                     continue
 
@@ -260,7 +291,7 @@ class ZBeacon(object):
                     )
                 if ip_address and not ip_is_private:
                     logger.debug(
-                        "Interface '{0}' refers to public ip address, drop it.".format(
+                        " - Interface '{0}' refers to public ip address, drop it.".format(
                             name
                         )
                     )
@@ -268,17 +299,16 @@ class ZBeacon(object):
 
                 interface_string = "{0}/{1}".format(address_str, netmask_str)
 
-                interface = ipaddress.ip_interface(u(interface_string))
-
+                interface = ipaddress.ip_interface(interface_string)
                 if interface.is_loopback:
-                    logger.debug("Interface {0} is a loopback device.".format(name))
+                    logger.debug(" - Interface {0} is a loopback device.".format(name))
                     continue
 
                 if interface.is_link_local:
-                    logger.debug("Interface {0} is a link-local device.".format(name))
+                    logger.debug(" - Interface {0} is a link-local device.".format(name))
                     continue
 
-                self.address = interface.ip
+                self.address = ip_address
                 self.mac = mac_str
                 self.network_address = interface.network.network_address
                 self.broadcast_address = interface.network.broadcast_address
@@ -293,6 +323,7 @@ class ZBeacon(object):
         logger.debug("Finished scanning interfaces.")
 
         if not self.address:
+            logger.debug("IP address not found during scan, fallback to looback address")
             self.network_address = ipaddress.IPv4Address(u("127.0.0.1"))
             self.broadcast_address = ipaddress.IPv4Address(u(MULTICAST_GRP))
             self.interface_name = "loopback"
@@ -449,3 +480,4 @@ if __name__ == "__main__":
     )
     speaker.send(transmit)
     speaker.destroy()
+
